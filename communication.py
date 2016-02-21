@@ -2,8 +2,14 @@ import re
 import requests
 import bs4
 import ast
+from time import sleep
+from random import randrange
 from bs4 import BeautifulSoup
 from datetime import date
+
+WAIT_TIME = 5
+WAIT_RANGE = 2
+
 
 def whoScoredHeader(isXHtml: bool = True) -> dict:
     result = {
@@ -17,8 +23,14 @@ def whoScoredHeader(isXHtml: bool = True) -> dict:
     return result
 
 
+def getRequest(url, headers):
+    waitTime = randrange(WAIT_TIME - WAIT_RANGE, WAIT_TIME + WAIT_RANGE + 1)
+    sleep(waitTime)
+    return requests.get(url, headers=headers)
+
+
 def getModelLastMode(page: str) -> str:
-    source = requests.get(page, headers=whoScoredHeader(False)).text
+    source = getRequest(page, headers=whoScoredHeader(False)).text
     match = re.search("Model-Last-Mode\':\s*\'(.*)\'", source)
     return match.group(1)
 
@@ -34,17 +46,17 @@ def playerInfo(match_id: str, team_id: str) -> str:
     headers['Referer'] = referer
     headers['Accept-Encoding'] = "gzip, deflate, sdch"
     headers['Model-Last-Mode'] = getModelLastMode(referer)
-    return requests.get(url, headers=headers).text
+    return getRequest(url, headers=headers).text
 
 
 def teamPage(team_id: str) -> str:
     url = "https://www.whoscored.com/Teams/" + team_id
-    return requests.get(url, headers=whoScoredHeader()).text
+    return getRequest(url, headers=whoScoredHeader()).text
 
 
 def playerPage(player_id: str) -> str:
     url = "https://www.whoscored.com/Players/" + player_id
-    return requests.get(url, headers=whoScoredHeader()).text
+    return getRequest(url, headers=whoScoredHeader()).text
 
 
 def tournamentNameToId(name):
@@ -88,7 +100,7 @@ class TournamentInfo:
 
     def seasonIdAndLink(self, endYear: int):
         url = self.tournamentPage
-        response = requests.get(url, headers=whoScoredHeader(isXHtml=False))
+        response = getRequest(url, headers=whoScoredHeader(isXHtml=False))
         soup = BeautifulSoup(response.text, "html.parser")
         seasons = soup.find("select", {"name": "seasons"}).contents
         seasons = [x for x in seasons if type(x) == bs4.Tag]
@@ -104,30 +116,20 @@ class TournamentInfo:
         return season_id, url + "/Seasons/" + season_id
 
     def getStageId(self, seasonLink: str) -> str:
-        source = requests.get(seasonLink, headers=whoScoredHeader(isXHtml=False)).text
+        source = getRequest(seasonLink, headers=whoScoredHeader(isXHtml=False)).text
         match = re.search("/Stages/(\d*)/", source)
         return match.group(1)
 
-    def monthGames(self, season_id: str, stage_id: str, arg: str) -> [MatchInfo]:
-        referer = self.tournamentPage + "/Seasons/" + season_id + "/Stages/" + stage_id
+    def monthGames(self, referer: str, modelLastMode: str, stage_id: str, arg: str) -> [MatchInfo]:
         url = "https://www.whoscored.com/tournamentsfeed/" + stage_id + "/Fixtures/?d=" + arg + "&isAggregate=false"
         headers = whoScoredHeader()
         headers['Accept'] = "text/plain, */*; q=0.01"
         headers['Referer'] = referer
-        headers['Model-Last-Mode'] = getModelLastMode(referer)
+        headers['Model-Last-Mode'] = modelLastMode
         headers['Accept-Encoding'] = "gzip, deflate, sdch"
 
-        RETRY_COUNT = 20
-        count = 0
-        while True:
-            try:
-                matchList = requests.get(url, headers=headers).text
-                matchList = ast.literal_eval(matchList)
-                break
-            except SyntaxError:
-                count += 1
-                if count > RETRY_COUNT:
-                    assert False, "could not fetch match list"
+        matchList = getRequest(url, headers=headers).text
+        matchList = ast.literal_eval(matchList)
 
         matchInfos = []
         for match in matchList:
@@ -147,6 +149,9 @@ class TournamentInfo:
         season_id, seasonLink = self.seasonIdAndLink(endYear)
         stage_id = self.getStageId(seasonLink)
 
+        referer = self.tournamentPage + "/Seasons/" + season_id + "/Stages/" + stage_id
+        modelLastMode = getModelLastMode(referer)
+
         startYear = endYear - 1
         startDate = date(startYear, self.startMonth, 1)
         endDate = date(endYear, self.endMonth, 28)
@@ -156,7 +161,7 @@ class TournamentInfo:
         while curDate < endDate:
             arg = curDate.isoformat().split("-")
             arg = arg[0] + arg[1]
-            result.extend(self.monthGames(season_id, stage_id, arg))
+            result.extend(self.monthGames(referer, modelLastMode, stage_id, arg))
             curDate = appendMonth(curDate)
 
         return result

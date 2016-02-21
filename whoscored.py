@@ -78,32 +78,23 @@ def test():
 
 
 def main():
-    """curDate = date(2010, 1, 1)
-
-    while curDate < date(2016, 1, 1):
-        matchInfos = extractGamesFromDay(curDate)
-        for matchInfo in matchInfos:
-            if db.matchExists(matchInfo.match_id):
-                print("Match " + str(matchInfo.match_id) + " already in DB")
-                continue
-
-            homeStats = extractTeamInfoFromGame(str(matchInfo.match_id), str(matchInfo.homeTeam_id))
-            awayStats = extractTeamInfoFromGame(str(matchInfo.match_id), str(matchInfo.awayTeam_id))
-            matchStats = MatchStats(matchInfo.match_id)
-            matchStats.homeTeamStats = homeStats
-            matchStats.awayTeamStats = awayStats
-            db.insertMatchStats(matchStats)
-        curDate += timedelta(days=1)"""
-
     argparser = argparse.ArgumentParser()
     argparser.add_argument("--test", action="store_true")
     args = argparser.parse_args()
 
     if args.test:
         test()
-    else:
-        ti = communication.TournamentInfo(regionToId("Germany"), tournamentNameToId("Bundesliga"), 8, 5)
-        print(len(ti.seasonGames(2015)))
+        return
+
+    ti = communication.TournamentInfo(regionToId("Germany"), tournamentNameToId("Bundesliga"), 8, 5)
+    games = ti.seasonGames(2015)
+    for game in games:
+        if db.matchExists(game.match_id):
+            continue
+        matchStats = MatchStats(game.match_id)
+        matchStats.homeTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.homeTeam_id))
+        matchStats.awayTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.awayTeam_id))
+        db.insertMatchStats(matchStats)
 
 if __name__ == "__main__":
     main()
