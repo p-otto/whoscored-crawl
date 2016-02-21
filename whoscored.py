@@ -2,6 +2,10 @@ import argparse
 import re
 import ast
 
+from requests import HTTPError
+from sqlalchemy.exc import IntegrityError
+from requests.exceptions import SSLError
+
 import communication
 from communication import regionToId, tournamentNameToId
 from matchstats import MatchStats, TeamGameStats
@@ -86,11 +90,21 @@ def main():
         test()
         return
 
+    webErrorCount = 0
+    MAX_WEB_ERRORS = 5
+
     ti = communication.TournamentInfo(regionToId("Germany"), tournamentNameToId("Bundesliga"), 8, 5)
     games = ti.seasonGames(2015)
-    for game in games:
+    for i, game in enumerate(games):
+        if webErrorCount > MAX_WEB_ERRORS:
+            print(str(MAX_WEB_ERRORS) + " repeated errors while requesting data")
+            print("Aborting...")
+            return
+
         if db.matchExists(game.match_id):
             continue
+
+        print("Game " + str(i+1) + "/" + len(games))
 
         db.begin()
         try:
@@ -99,8 +113,25 @@ def main():
             matchStats.awayTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.awayTeam_id))
             db.insertMatchStats(matchStats)
             db.commit()
-        except:
+            webErrorCount = 0
+        except HTTPError as e:
+            print("Exception HTTPError during match " + str(game.match_id))
+            print(e.strerror)
+            webErrorCount += 1
             db.rollback()
+        except SSLError as e:
+            print("Exception SSLError during match " + str(game.match_id))
+            print(e.strerror)
+            webErrorCount += 1
+            db.rollback()
+        except IntegrityError:
+            print("Exception IntegrityError during match " + str(game.match_id))
+            db.rollback()
+            raise
+        except Exception as e:
+            print("Unknown Exception: " + str(type(e)) + " during match " + str(game.match_id))
+            db.rollback()
+            raise
 
 if __name__ == "__main__":
     main()
