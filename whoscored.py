@@ -93,45 +93,51 @@ def main():
     webErrorCount = 0
     MAX_WEB_ERRORS = 5
 
-    ti = communication.TournamentInfo(regionToId("Germany"), tournamentNameToId("Bundesliga"), 8, 5)
-    games = ti.seasonGames(2015)
-    for i, game in enumerate(games):
-        if webErrorCount > MAX_WEB_ERRORS:
-            print(str(MAX_WEB_ERRORS) + " repeated errors while requesting data")
-            print("Aborting...")
-            return
+    curEndYear = 2010
+    while curEndYear <= 2014:
+        ti = communication.TournamentInfo(regionToId("Germany"), tournamentNameToId("Bundesliga"), 8, 5)
+        games = ti.seasonGames(curEndYear)
+        curEndYear += 1
 
-        if db.matchExists(game.match_id):
-            continue
+        for i, game in enumerate(games):
+            if webErrorCount > MAX_WEB_ERRORS:
+                print(str(MAX_WEB_ERRORS) + " repeated errors while requesting data")
+                print("Aborting...")
+                return
 
-        print("Game " + str(i+1) + "/" + len(games))
+            if db.matchExists(game.match_id):
+                continue
 
-        db.begin()
-        try:
-            matchStats = MatchStats(game.match_id)
-            matchStats.homeTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.homeTeam_id))
-            matchStats.awayTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.awayTeam_id))
-            db.insertMatchStats(matchStats)
-            db.commit()
-            webErrorCount = 0
-        except HTTPError as e:
-            print("Exception HTTPError during match " + str(game.match_id))
-            print(e.strerror)
-            webErrorCount += 1
-            db.rollback()
-        except SSLError as e:
-            print("Exception SSLError during match " + str(game.match_id))
-            print(e.strerror)
-            webErrorCount += 1
-            db.rollback()
-        except IntegrityError:
-            print("Exception IntegrityError during match " + str(game.match_id))
-            db.rollback()
-            raise
-        except Exception as e:
-            print("Unknown Exception: " + str(type(e)) + " during match " + str(game.match_id))
-            db.rollback()
-            raise
+            print(str(curEndYear) + ": Game " + str(i+1) + "/" + str(len(games)))
+
+            db.begin()
+            try:
+                matchStats = MatchStats(game.match_id)
+                matchStats.homeTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.homeTeam_id))
+                matchStats.awayTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.awayTeam_id))
+                db.insertMatchStats(matchStats)
+                matchStats.statNames.append("year")
+                matchStats.stats.append(curEndYear)
+                db.commit()
+                webErrorCount = 0
+            except HTTPError as e:
+                print("Exception HTTPError during match " + str(game.match_id))
+                print(e.strerror)
+                webErrorCount += 1
+                db.rollback()
+            except SSLError as e:
+                print("Exception SSLError during match " + str(game.match_id))
+                print(e.strerror)
+                webErrorCount += 1
+                db.rollback()
+            except IntegrityError:
+                print("Exception IntegrityError during match " + str(game.match_id))
+                db.rollback()
+                raise
+            except Exception as e:
+                print("Unknown Exception: " + str(type(e)) + " during match " + str(game.match_id))
+                db.rollback()
+                raise
 
 if __name__ == "__main__":
     main()
