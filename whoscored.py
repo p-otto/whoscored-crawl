@@ -39,13 +39,13 @@ def extractTeamInfoFromGame(match_id: str, team_id: str) -> TeamGameStats:
     extractTeamInfo(team_id)
 
     # get player stats
-    response = communication.playerInfo(match_id, team_id)
-    playerInfo = response.replace("null", "None").replace("true", "True").replace("false", "False")
-    playerInfo = re.sub("\s+", "", playerInfo)  # remove whitespace
-    playerInfo = ast.literal_eval(playerInfo)
+    response = communication.playerStatsForTeam(match_id, team_id)
+    playerStats = response.replace("null", "None").replace("true", "True").replace("false", "False")
+    playerStats = re.sub("\s+", "", playerStats)  # remove whitespace
+    playerStats = ast.literal_eval(playerStats)
 
     # TODO: filter for useful stats (blacklist?)
-    playerStatList = playerInfo['playerTableStats']
+    playerStatList = playerStats['playerTableStats']
     playerStatNames = list(playerStatList[0].keys())
     playerStatNames.remove("incidents")  # TODO: add schema for incidents
     allPlayerStats = dict()
@@ -91,10 +91,16 @@ def main():
     for game in games:
         if db.matchExists(game.match_id):
             continue
-        matchStats = MatchStats(game.match_id)
-        matchStats.homeTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.homeTeam_id))
-        matchStats.awayTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.awayTeam_id))
-        db.insertMatchStats(matchStats)
+
+        db.begin()
+        try:
+            matchStats = MatchStats(game.match_id)
+            matchStats.homeTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.homeTeam_id))
+            matchStats.awayTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.awayTeam_id))
+            db.insertMatchStats(matchStats)
+            db.commit()
+        except:
+            db.rollback()
 
 if __name__ == "__main__":
     main()

@@ -10,6 +10,15 @@ class Database:
     def stringToAttribute(inp: str):
         return inp.replace("-", "_").replace(" ", "_").replace(".", "")
 
+    def begin(self):
+        self.db.begin()
+
+    def commit(self):
+        self.db.commit()
+
+    def rollback(self):
+        self.db.rollback()
+
     def teamExists(self, team_id: int) -> bool:
         team = self.db['team'].find_one(id=team_id)
         return team is not None
@@ -17,7 +26,6 @@ class Database:
     def insertTeamInfo(self, team_id: int, teamInfoDict: dict):
         teamInfoDict['id'] = team_id
         self.db['team'].insert(teamInfoDict)
-        self.db.commit()
 
     def playerExists(self, player_id: int) -> bool:
         player = self.db['player'].find_one(id=player_id)
@@ -26,7 +34,6 @@ class Database:
     def insertPlayerInfo(self, player_id: int, playerInfoDict: dict):
         playerInfoDict['id'] = player_id
         self.db['player'].insert(playerInfoDict)
-        self.db.commit()
 
     def matchExists(self, match_id: int) -> bool:
         match = self.db['match'].find_one(id=match_id)
@@ -62,5 +69,3 @@ class Database:
 
         insertTeam(statsHome)
         insertTeam(statsAway)
-
-        self.db.commit()

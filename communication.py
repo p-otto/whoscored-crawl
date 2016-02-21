@@ -35,7 +35,7 @@ def getModelLastMode(page: str) -> str:
     return match.group(1)
 
 
-def playerInfo(match_id: str, team_id: str) -> str:
+def playerStatsForTeam(match_id: str, team_id: str) -> str:
     liveStatPage = "https://www.whoscored.com/Matches/" + match_id + "/LiveStatistics"
 
     # TODO: check if category=passing ... return different values
