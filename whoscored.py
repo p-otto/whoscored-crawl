@@ -112,12 +112,13 @@ def main():
 
             db.begin()
             try:
+                # TODO: refactor into own method and gather more information about the match
                 matchStats = MatchStats(game.match_id)
                 matchStats.homeTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.homeTeam_id))
                 matchStats.awayTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.awayTeam_id))
-                db.insertMatchStats(matchStats)
                 matchStats.statNames.append("year")
                 matchStats.stats.append(curEndYear)
+                db.insertMatchStats(matchStats)
                 db.commit()
                 webErrorCount = 0
             except HTTPError as e:
