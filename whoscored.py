@@ -93,9 +93,12 @@ def main():
     webErrorCount = 0
     MAX_WEB_ERRORS = 5
 
+    REGION_NAME = "England"
+    LEAGUE_NAME = "PremierLeague"
+
     curEndYear = 2010
-    while curEndYear <= 2014:
-        ti = communication.TournamentInfo(regionToId("Germany"), tournamentNameToId("Bundesliga"), 8, 5)
+    while curEndYear <= 2015:
+        ti = communication.TournamentInfo(regionToId(REGION_NAME), tournamentNameToId(LEAGUE_NAME), 8, 5)
         games = ti.seasonGames(curEndYear)
         curEndYear += 1
 
@@ -116,8 +119,8 @@ def main():
                 matchStats = MatchStats(game.match_id)
                 matchStats.homeTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.homeTeam_id))
                 matchStats.awayTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.awayTeam_id))
-                matchStats.statNames.append("year")
-                matchStats.stats.append(curEndYear)
+                matchStats.statNames.extend(["year", "leagueName"])
+                matchStats.stats.extend([curEndYear, LEAGUE_NAME])
                 db.insertMatchStats(matchStats)
                 db.commit()
                 webErrorCount = 0
