@@ -4,7 +4,7 @@ import ast
 
 from requests import HTTPError
 from sqlalchemy.exc import IntegrityError
-from requests.exceptions import SSLError
+from requests.exceptions import SSLError, ConnectionError
 
 import communication
 from communication import regionToId, tournamentNameToId
@@ -125,12 +125,18 @@ def main():
                 db.commit()
                 webErrorCount = 0
             except HTTPError as e:
-                print("Exception HTTPError during match " + str(game.match_id))
                 print(e.strerror)
                 webErrorCount += 1
                 db.rollback()
             except SSLError as e:
-                print("Exception SSLError during match " + str(game.match_id))
+                print(e.strerror)
+                webErrorCount += 1
+                db.rollback()
+            except ConnectionError as e:
+                print(e.strerror)
+                webErrorCount += 1
+                db.rollback()
+            except ConnectionResetError as e:
                 print(e.strerror)
                 webErrorCount += 1
                 db.rollback()
