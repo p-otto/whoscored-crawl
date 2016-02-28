@@ -67,38 +67,13 @@ def extractTeamInfoFromGame(match_id: str, team_id: str) -> TeamGameStats:
     return teamGameStats
 
 
-def test():
-    # test tournament infos
-    ti = communication.TournamentInfo(regionToId("Germany"), tournamentNameToId("Bundesliga"), 8, 5)
-    assert ti.seasonIdAndLink(2015) == ("4336", "https://www.whoscored.com/Regions/81/Tournaments/3/Seasons/4336")
-    assert ti.getStageId("https://www.whoscored.com/Regions/81/Tournaments/3/Seasons/4336") == "9192"
-    assert ti.seasonIdAndLink(2014) == ("3863", "https://www.whoscored.com/Regions/81/Tournaments/3/Seasons/3863")
-    assert(len(ti.seasonGames(2015))) == 306
-    assert(len(ti.seasonGames(2014))) == 306
-
-    # TODO: test games for month and season
-
-    print("Tests done.")
-
-
-def main():
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument("--test", action="store_true")
-    args = argparser.parse_args()
-
-    if args.test:
-        test()
-        return
-
+def processTournament(regionName: str, tournamentName: str):
     webErrorCount = 0
     MAX_WEB_ERRORS = 5
 
-    REGION_NAME = "England"
-    LEAGUE_NAME = "PremierLeague"
-
     curEndYear = 2010
     while curEndYear <= 2015:
-        ti = communication.TournamentInfo(regionToId(REGION_NAME), tournamentNameToId(LEAGUE_NAME), 8, 5)
+        ti = communication.TournamentInfo(regionToId(regionName), tournamentNameToId(tournamentName), 8, 5)
         games = ti.seasonGames(curEndYear)
         curEndYear += 1
 
@@ -120,7 +95,7 @@ def main():
                 matchStats.homeTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.homeTeam_id))
                 matchStats.awayTeamStats = extractTeamInfoFromGame(str(game.match_id), str(game.awayTeam_id))
                 matchStats.statNames.extend(["year", "leagueName"])
-                matchStats.stats.extend([curEndYear, LEAGUE_NAME])
+                matchStats.stats.extend([curEndYear, tournamentName])
                 db.insertMatchStats(matchStats)
                 db.commit()
                 webErrorCount = 0
@@ -148,6 +123,41 @@ def main():
                 print("Unknown Exception: " + str(type(e)) + " during match " + str(game.match_id))
                 db.rollback()
                 raise
+
+
+def test():
+    # test tournament infos
+    ti = communication.TournamentInfo(regionToId("Germany"), tournamentNameToId("Bundesliga"), 8, 5)
+    assert ti.seasonIdAndLink(2015) == ("4336", "https://www.whoscored.com/Regions/81/Tournaments/3/Seasons/4336")
+    assert ti.getStageId("https://www.whoscored.com/Regions/81/Tournaments/3/Seasons/4336") == "9192"
+    assert ti.seasonIdAndLink(2014) == ("3863", "https://www.whoscored.com/Regions/81/Tournaments/3/Seasons/3863")
+    assert(len(ti.seasonGames(2015))) == 306
+    assert(len(ti.seasonGames(2014))) == 306
+
+    # TODO: test games for month and season
+
+    print("Tests done.")
+
+
+def main():
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("--test", action="store_true")
+    args = argparser.parse_args()
+
+    if args.test:
+        test()
+        return
+
+    landLeagues = [
+        ("Spain", "LaLiga"),
+        ("England", "Championship"),
+        ("France", "Ligue1"),
+        ("Netherlands", "Eredivisie"),
+        ("Germany", "Bundesliga"),
+        ("England", "PremierLeague")]
+
+    for land, league in landLeagues:
+        processTournament(land, league)
 
 if __name__ == "__main__":
     main()
