@@ -4,7 +4,7 @@ from matchstats import *
 
 class Database:
     def __init__(self, url):
-        self.db = dataset.Database(url)
+        self.db = dataset.connect(url, engine_kwargs={"connect_args": {"timeout": 120}})
 
     @staticmethod
     def stringToAttribute(inp: str):
