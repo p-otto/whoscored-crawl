@@ -150,13 +150,13 @@ def main():
         return
 
     landLeagues = [
+        ("Germany", "Bundesliga", 2010),
+        ("England", "PremierLeague", 2010),
+        ("Spain", "LaLiga", 2010),
         ("Italy", "SerieA", 2010),
         ("France", "Ligue1", 2010),
         ("Netherlands", "Eredivisie", 2014),
-        ("England", "Championship", 2014),
-        ("Spain", "LaLiga", 2010),
-        ("Germany", "Bundesliga", 2010),
-        ("England", "PremierLeague", 2010)]
+        ("England", "Championship", 2014)]
 
     for land, league, startYear in landLeagues:
         processTournament(land, league, startYear)
