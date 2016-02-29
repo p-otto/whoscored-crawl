@@ -67,15 +67,14 @@ def extractTeamInfoFromGame(match_id: str, team_id: str) -> TeamGameStats:
     return teamGameStats
 
 
-def processTournament(regionName: str, tournamentName: str):
+def processTournament(regionName: str, tournamentName: str, startYear: int):
     webErrorCount = 0
     MAX_WEB_ERRORS = 5
 
-    curEndYear = 2010
+    curEndYear = startYear
     while curEndYear <= 2015:
         ti = communication.TournamentInfo(regionToId(regionName), tournamentNameToId(tournamentName), 8, 5)
         games = ti.seasonGames(curEndYear)
-        curEndYear += 1
 
         for i, game in enumerate(games):
             if webErrorCount > MAX_WEB_ERRORS:
@@ -124,6 +123,8 @@ def processTournament(regionName: str, tournamentName: str):
                 db.rollback()
                 raise
 
+        curEndYear += 1
+
 
 def test():
     # test tournament infos
@@ -149,15 +150,16 @@ def main():
         return
 
     landLeagues = [
-        ("Spain", "LaLiga"),
-        ("England", "Championship"),
-        ("France", "Ligue1"),
-        ("Netherlands", "Eredivisie"),
-        ("Germany", "Bundesliga"),
-        ("England", "PremierLeague")]
+        ("Italy", "SerieA", 2010),
+        ("France", "Ligue1", 2010),
+        ("Netherlands", "Eredivisie", 2014),
+        ("England", "Championship", 2014),
+        ("Spain", "LaLiga", 2010),
+        ("Germany", "Bundesliga", 2010),
+        ("England", "PremierLeague", 2010)]
 
-    for land, league in landLeagues:
-        processTournament(land, league)
+    for land, league, startYear in landLeagues:
+        processTournament(land, league, startYear)
 
 if __name__ == "__main__":
     main()

@@ -66,7 +66,8 @@ def tournamentNameToId(name):
         "LaLiga": 4,
         "Championship": 7,
         "Ligue1": 22,
-        "Eredivisie": 13
+        "Eredivisie": 13,
+        "SerieA": 5
     }
     id = tounamentDict.get(name, -1)
     assert id != -1
@@ -80,7 +81,8 @@ def regionToId(name):
         "Germany": 81,
         "Spain": 206,
         "France": 74,
-        "Netherlands": 155
+        "Netherlands": 155,
+        "Italy": 108
     }
     id = regionDict.get(name, -1)
     assert id != -1
